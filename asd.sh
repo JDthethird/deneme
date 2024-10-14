@@ -1,19 +1,15 @@
 #!/bin/bash
 
-# Kaynak ve hedef dizinler
 SOURCE_DIR="/fbapp/logs/LEASINGTEST/reports"
-BACKUP_DIR="/backup"
+BACKUP_DIR="/fbapp/backup/LogBackups/LEASINGTEST"
 
-# Zaman damgası ekleyerek zip dosyası adı oluştur
-TIMESTAMP=$(date +"%Y%m%d")
+TIMESTAMP=$(date +"%Y%m%d%H%M")
 ZIP_FILE="logs_backup_$TIMESTAMP.zip"
 
-# log dosyalarını zipleyip backup dizinine taşı
+mkdir -p "$BACKUP_DIR"
+
 zip -r "$BACKUP_DIR/$ZIP_FILE" "$SOURCE_DIR"/*.log
 
-# İşlem başarılı olduysa mesaj yazdır
 if [ $? -eq 0 ]; then
     echo "Log dosyaları başarıyla yedeklendi: $BACKUP_DIR/$ZIP_FILE"
-else
-    echo "Yedekleme işlemi başarısız oldu!"
 fi
