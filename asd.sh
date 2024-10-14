@@ -3,13 +3,15 @@
 SOURCE_DIR="/fbapp/logs/LEASINGTEST/reports"
 BACKUP_DIR="/fbapp/backup/LogBackups/LEASINGTEST"
 
-TIMESTAMP=$(date +"%Y%m%d%H%M")
+TIMESTAMP=$(date +"%y%m%d%H%M")
 ZIP_FILE="logs_backup_$TIMESTAMP.zip"
+NEW_DIR="$BACKUP_DIR/$TIMESTAMP"
 
-mkdir -p "$BACKUP_DIR"
+mkdir -p "$NEW_DIR"
 
-zip -r "$BACKUP_DIR/$ZIP_FILE" "$SOURCE_DIR"/*.log
+zip -r "$NEW_DIR/$ZIP_FILE" "$SOURCE_DIR"/*
 
 if [ $? -eq 0 ]; then
-    echo "Log dosyaları başarıyla yedeklendi: $BACKUP_DIR/$ZIP_FILE"
+    rm -rf "$SOURCE_DIR"/*
+    echo "dosyalar yedeklendi: $NEW_DIR/$ZIP_FILE"
 fi
