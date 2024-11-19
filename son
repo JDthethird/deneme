@@ -1,0 +1,98 @@
+<Context>
+    <Resource name="jdbc/SQLServerDB"
+              auth="Container"
+              type="javax.sql.DataSource"
+              maxTotal="20"
+              maxIdle="10"
+              maxWaitMillis="-1"
+              username="dbuser"
+              password="dbpassword"
+              driverClassName="com.microsoft.sqlserver.jdbc.SQLServerDriver"
+              url="jdbc:sqlserver://dbadress;databaseName=your_db_name"/>
+</Context>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.sql.DataSource;
+import java.sql.*;
+
+public class Main {
+    public static void main(String[] args) {
+        // JNDI bağlantısı için gerekli ayarları yapıyoruz
+        try {
+            // JNDI üzerinden veri kaynağını al
+            Context initContext = new InitialContext();
+            DataSource ds = (DataSource) initContext.lookup("java:/comp/env/jdbc/SQLServerDB");
+
+            // Veritabanına bağlantı sağla
+            try (Connection conn = ds.getConnection()) {
+                System.out.println("Veritabanına başarıyla bağlanıldı!");
+
+                // Örnek sorgu: Veritabanındaki bir tablodan tüm veriyi seç
+                String query = "SELECT * FROM your_table";  // Tablonun adını uygun şekilde değiştirmelisiniz
+                try (Statement stmt = conn.createStatement();
+                     ResultSet rs = stmt.executeQuery(query)) {
+
+                    // Sorgu sonuçlarını yazdır
+                    System.out.println("Sorgu Sonuçları:");
+                    ResultSetMetaData rsmd = rs.getMetaData();
+                    int columnsNumber = rsmd.getColumnCount();
+
+                    // Sütun başlıklarını yazdır
+                    for (int i = 1; i <= columnsNumber; i++) {
+                        System.out.print(rsmd.getColumnName(i) + "\t");
+                    }
+                    System.out.println();
+
+                    // Veritabanı sonuçlarını yazdır
+                    while (rs.next()) {
+                        for (int i = 1; i <= columnsNumber; i++) {
+                            System.out.print(rs.getString(i) + "\t");
+                        }
+                        System.out.println();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Hata mesajlarını ekrana yazdır
+            System.err.println("Hata oluştu: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Java 8 bazlı Docker imajı
+FROM openjdk:8-jdk-alpine
+
+# Bağımlılıkları ve uygulama dosyalarını kopyala
+COPY context.xml /usr/local/tomcat/conf/context.xml
+COPY target/SimpleApp-1.0-SNAPSHOT-jar-with-dependencies.jar /app.jar
+
+# Uygulamayı başlat
+ENTRYPOINT ["java", "-jar", "/app.jar"]
