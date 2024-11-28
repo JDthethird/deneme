@@ -37,7 +37,13 @@ grep -oE "10\.81\.[0-9]+\.[0-9]+" "$INPUT_FILE" | while read -r ip; do
 done
 
 # 0.0.0.0 IP'lerini ve appjava ile başlayan vserver'ları ayıklayarak ayrı dosyaya yaz
-grep "0.0.0.0" "$INPUT_FILE" | grep -oE "add lb vserver appjava[^ ]+" >> "$VSERVER_FILE"
+awk '/0.0.0.0/ && /add lb vserver/ { 
+    for (i=1; i<=NF; i++) {
+        if ($i ~ /^appjava/) {
+            print $i
+        }
+    }
+}' "$INPUT_FILE" >> "$VSERVER_FILE"
 
 echo "İşlem tamamlandı."
 echo "Çıktı dosyası: $OUTPUT_FILE"
