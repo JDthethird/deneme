@@ -21,12 +21,13 @@ grep -oE "10\.81\.[0-9]+\.[0-9]+" "$INPUT_FILE" | while read -r ip; do
         continue
     fi
 
-    # nslookup ile DNS ismini al
-    dns_name=$(nslookup "$ip" | awk '/name =/ {print $NF}' | sed 's/\.$//')
-    
-    # Eğer DNS ismi bulunmuşsa, IP ve DNS ismini dosyaya yaz
-    if [ -n "$dns_name" ]; then
-        echo "$ip - $dns_name" >> "$OUTPUT_FILE"
+    # nslookup ile DNS isimlerini al
+    dns_names=$(nslookup "$ip" | awk '/name =/ {print $NF}' | sed 's/\.$//')
+
+    # Eğer DNS isimleri bulunmuşsa, IP ve birleştirilmiş DNS isimlerini dosyaya yaz
+    if [ -n "$dns_names" ]; then
+        dns_combined=$(echo "$dns_names" | tr '\n' ' / ' | sed 's/ \/ $//')
+        echo "$ip - $dns_combined" >> "$OUTPUT_FILE"
     else
         # DNS ismi bulunamazsa "No DNS record" ekle
         echo "$ip - No DNS record" >> "$OUTPUT_FILE"
