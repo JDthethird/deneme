@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# IP adreslerini içeren dosyanın adı
+INPUT_FILE="input.txt"
+# Çıktıyı kaydedeceğiniz dosyanın adı
+OUTPUT_FILE="resolved_ips.txt"
+
+# Çıktı dosyasını sıfırla
+> "$OUTPUT_FILE"
+
+# 10.81.x.x formatındaki IP adreslerini ara ve işle
+grep -oE "10\.81\.[0-9]+\.[0-9]+" "$INPUT_FILE" | while read -r ip; do
+    # nslookup ile DNS ismini al
+    dns_name=$(nslookup "$ip" | awk '/name =/ {print $NF}' | sed 's/\.$//')
+    
+    # Eğer DNS ismi bulunmuşsa, IP ve DNS ismini dosyaya yaz
+    if [ -n "$dns_name" ]; then
+        echo "$ip - $dns_name" >> "$OUTPUT_FILE"
+    else
+        # DNS ismi bulunamazsa "No DNS record" ekle
+        echo "$ip - No DNS record" >> "$OUTPUT_FILE"
+    fi
+done
+
+echo "İşlem tamamlandı. Çıktı dosyası: $OUTPUT_FILE"
