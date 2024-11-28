@@ -1,126 +1,24 @@
 #!/bin/bash
 
-# IP adreslerini içeren dosyanın adı
 INPUT_FILE="input.txt"
-# Çıktıyı kaydedeceğimiz dosyanın adı
 OUTPUT_FILE="resolved_ips.txt"
-VSERVER_FILE="vserver_appjava.txt"
+VSERVER_FILE="vservers_with_zero_ip.txt"
 
-# Çıktı dosyalarını sıfırla
 > "$OUTPUT_FILE"
 > "$VSERVER_FILE"
 
-# IP ve DNS çiftlerini kontrol etmek için bir dizi oluştur
-declare -A ip_dns_map
-
-# 10.81.x.x formatındaki IP adreslerini ara ve işle
 grep -oE "10\.81\.[0-9]+\.[0-9]+" "$INPUT_FILE" | while read -r ip; do
-    # nslookup ile DNS ismini al
     dns_name=$(nslookup "$ip" | awk '/name =/ {print $NF}' | sed 's/\.$//')
     
-    # Eğer DNS ismi bulunmuşsa ve IP daha önce eklenmemişse
     if [ -n "$dns_name" ]; then
-        if [[ -z "${ip_dns_map[$ip]}" ]]; then
-            # IP ve DNS ismini dosyaya yaz
-            echo "$ip - $dns_name" >> "$OUTPUT_FILE"
-            ip_dns_map[$ip]=1
-        fi
+        echo "$ip - $dns_name" >> "$OUTPUT_FILE"
     else
-        # DNS ismi bulunamazsa "No DNS record" ekle
-        if [[ -z "${ip_dns_map[$ip]}" ]]; then
-            echo "$ip - No DNS record" >> "$OUTPUT_FILE"
-            ip_dns_map[$ip]=1
-        fi
+        echo "$ip - No DNS record" >> "$OUTPUT_FILE"
     fi
 done
 
-# 0.0.0.0 olan IP'leri ve appjava ile başlayan vserver'ları ayıralım
-grep "0.0.0.0" "$INPUT_FILE" | while read -r line; do
-    # Eğer vserver appjava ile başlıyorsa
-    vserver=$(echo "$line" | grep -oE "appjava[^\s]*")
-    if [ -n "$vserver" ]; then
-        echo "$vserver" >> "$VSERVER_FILE"
-    fi
-done
+grep "0.0.0.0" "$INPUT_FILE" | grep -oE "add lb vserver [a-zA-Z0-9\-]+" | grep "^add lb vserver appjava" >> "$VSERVER_FILE"
 
-# Çıktıyı Python scriptine aktaralım
-python3 generate_xlsx.py "$OUTPUT_FILE" "$VSERVER_FILE"
-
-echo "İşlem tamamlandı. Çıktı dosyası: output.xlsx ve appjava_vservers.xlsx"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-import sys
-from openpyxl import Workbook
-
-def generate_xlsx(input_file, vserver_file):
-    # IP ve DNS bilgilerini yazacağımız Excel dosyası
-    wb_ips = Workbook()
-    ws_ips = wb_ips.active
-    ws_ips.title = "IP - DNS Records"
-    ws_ips.append(["IP Adresi", "DNS İsmi"])
-
-    # appjava vserver bilgilerini yazacağımız Excel dosyası
-    wb_vservers = Workbook()
-    ws_vservers = wb_vservers.active
-    ws_vservers.title = "VServers"
-    ws_vservers.append(["VServer"])
-
-    # Txt dosyasını oku ve IP - DNS bilgilerini Excel'e yaz
-    with open(input_file, 'r') as file:
-        for line in file:
-            parts = line.strip().split(" - ")
-            if len(parts) == 2:
-                ip, dns_name = parts
-                ws_ips.append([ip, dns_name])
-
-    # appjava vserver bilgilerini yaz
-    with open(vserver_file, 'r') as file:
-        for line in file:
-            vserver = line.strip()
-            if vserver:  # Boş satırları atla
-                ws_vservers.append([vserver])
-
-    # Çıktı dosyalarını kaydet
-    wb_ips.save("output.xlsx")
-    wb_vservers.save("appjava_vservers.xlsx")
-    print(f"Çıktı dosyaları oluşturuldu: output.xlsx ve appjava_vservers.xlsx")
-
-if __name__ == "__main__":
-    # Python scriptine dosya yollarını aktar
-    input_file = sys.argv[1]
-    vserver_file = sys.argv[2]
-    generate_xlsx(input_file, vserver_file)
+echo "İşlem tamamlandı."
+echo "Çıktı dosyası: $OUTPUT_FILE"
+echo "0.0.0.0 IP'leri içeren vserver'lar: $VSERVER_FILE"
