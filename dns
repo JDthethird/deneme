@@ -38,8 +38,8 @@ done
 
 # 0.0.0.0 IP'lerini içeren ve appjava ile başlayan vserver'ları ayıklayarak ayrı dosyaya yaz
 grep "0.0.0.0" "$INPUT_FILE" | while read -r line; do
-    # 0.0.0.0 içeren satırlarda, appjava ile başlayan vserver ismini al
-    vserver_name=$(echo "$line" | grep -oP "add lb vserver \Kappjava\w+(-\w+)*")
+    # "0.0.0.0" içeren satırlarda, vserver'ı bulmaya çalış
+    vserver_name=$(echo "$line" | grep -oP "add lb vserver \Kappjava[^\s]+")
 
     # Debug: vserver_name ne oldu kontrol edelim
     echo "Found vserver: $vserver_name"
