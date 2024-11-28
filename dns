@@ -1,22 +1,42 @@
 #!/bin/bash
 
+# IP adreslerini içeren dosyanın adı
 INPUT_FILE="input.txt"
+# Çıktıyı kaydedeceğiniz dosyanın adı
 OUTPUT_FILE="resolved_ips.txt"
+# 0.0.0.0 IP'leri içeren vserver'ların ayrı kaydedileceği dosya
 VSERVER_FILE="vservers_with_zero_ip.txt"
 
+# Çıktı dosyalarını sıfırla
 > "$OUTPUT_FILE"
 > "$VSERVER_FILE"
 
+# Daha önce işlenmiş IP'leri saklayacak dizi
+declare -A processed_ips
+
+# 10.81.x.x formatındaki IP adreslerini ara ve işle
 grep -oE "10\.81\.[0-9]+\.[0-9]+" "$INPUT_FILE" | while read -r ip; do
+    # Eğer bu IP daha önce işlendi ise, geç
+    if [[ -n "${processed_ips[$ip]}" ]]; then
+        continue
+    fi
+
+    # nslookup ile DNS ismini al
     dns_name=$(nslookup "$ip" | awk '/name =/ {print $NF}' | sed 's/\.$//')
     
+    # Eğer DNS ismi bulunmuşsa, IP ve DNS ismini dosyaya yaz
     if [ -n "$dns_name" ]; then
         echo "$ip - $dns_name" >> "$OUTPUT_FILE"
     else
+        # DNS ismi bulunamazsa "No DNS record" ekle
         echo "$ip - No DNS record" >> "$OUTPUT_FILE"
     fi
+
+    # İşlenen IP'yi diziye ekle
+    processed_ips["$ip"]=1
 done
 
+# 0.0.0.0 IP'lerini ve appjava ile başlayan vserver'ları ayıklayarak ayrı dosyaya yaz
 grep "0.0.0.0" "$INPUT_FILE" | grep -oE "add lb vserver [a-zA-Z0-9\-]+" | grep "^add lb vserver appjava" >> "$VSERVER_FILE"
 
 echo "İşlem tamamlandı."
