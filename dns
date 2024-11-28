@@ -36,18 +36,16 @@ grep -oE "10\.81\.[0-9]+\.[0-9]+" "$INPUT_FILE" | while read -r ip; do
     processed_ips["$ip"]=1
 done
 
-# 0.0.0.0 içeren ve vserver isimlerini ayıkla
-while IFS= read -r line; do
-    # Eğer satırda 0.0.0.0 varsa
-    if [[ "$line" == *"0.0.0.0"* ]]; then
-        # 0.0.0.0'dan önceki iki kelimeyi al
-        vserver_name=$(echo "$line" | awk '{for(i=1;i<=NF;i++) if($i=="0.0.0.0") print $(i-2)}')
-        # Eğer vserver adı varsa, dosyaya yaz
-        if [[ -n "$vserver_name" ]]; then
-            echo "$vserver_name" >> "$VSERVER_FILE"
-        fi
+# 0.0.0.0 IP'lerini içeren ve appjava ile başlayan vserver'ları ayıklayarak ayrı dosyaya yaz
+grep "0.0.0.0" "$INPUT_FILE" | while read -r line; do
+    # 0.0.0.0 içeren satırlarda, appjava ile başlayan vserver ismini al
+    vserver_name=$(echo "$line" | grep -oP "add lb vserver \Kappjava[^\s]+")
+    
+    # Eğer vserver adı varsa, dosyaya yaz
+    if [[ -n "$vserver_name" ]]; then
+        echo "$vserver_name" >> "$VSERVER_FILE"
     fi
-done < "$INPUT_FILE"
+done
 
 echo "İşlem tamamlandı."
 echo "Çıktı dosyası: $OUTPUT_FILE"
