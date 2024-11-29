@@ -1,40 +1,61 @@
 #!/bin/bash
 
+# IP adreslerini içeren dosyanın adı
 INPUT_FILE="input.txt"
+# Çıktıyı kaydedeceğiniz dosyanın adı
 OUTPUT_FILE="resolved_ips.txt"
+# 0.0.0.0 IP'leri içeren vserver'ların ayrı kaydedileceği dosya
 VSERVER_FILE="vservers_with_zero_ip.txt"
 
+# Çıktı dosyalarını sıfırla
 > "$OUTPUT_FILE"
 > "$VSERVER_FILE"
 
+# Daha önce işlenmiş IP'leri saklayacak dizi
 declare -A processed_ips
 
+# Dosyadaki her satırı işle
 while read -r line; do
+    # Satırdaki 6. kelimeyi çek
     ip=$(echo "$line" | awk '{print $6}')
 
+    # Eğer IP 0.0.0.0 ise, işleme devam etme
     if [[ "$ip" == "0.0.0.0" ]]; then
         continue
     fi
 
+    # Eğer IP geçerli bir formatta değilse, atla
+    if [[ ! "$ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+        continue
+    fi
+
+    # Eğer bu IP daha önce işlendi ise, geç
     if [[ -n "${processed_ips[$ip]}" ]]; then
         continue
     fi
 
+    # nslookup ile DNS isimlerini al
     dns_names=$(nslookup "$ip" | awk '/name =/ {print $NF}' | sed 's/\.$//')
 
+    # Eğer DNS isimleri bulunmuşsa, IP ve birleştirilmiş DNS isimlerini dosyaya yaz
     if [ -n "$dns_names" ]; then
-        dns_combined=$(echo "$dns_names" | paste -sd '/' -)
+        dns_combined=$(echo "$dns_names" | paste -sd ' / ' -) # Satırları " / " ile birleştir
         echo "$ip - $dns_combined" >> "$OUTPUT_FILE"
     else
+        # DNS ismi bulunamazsa "No DNS record" ekle
         echo "$ip - No DNS record" >> "$OUTPUT_FILE"
     fi
 
+    # İşlenen IP'yi diziye ekle
     processed_ips["$ip"]=1
 done < "$INPUT_FILE"
 
+# 0.0.0.0 IP'lerini içeren ve appjava ile başlayan vserver'ları ayıklayarak ayrı dosyaya yaz
 grep "0.0.0.0" "$INPUT_FILE" | while read -r line; do
+    # "0.0.0.0" içeren satırlarda, vserver'ı bulmaya çalış
     vserver_name=$(echo "$line" | grep -oP "add lb vserver \Kappjava[^\s]+")
 
+    # Eğer vserver adı varsa, dosyaya yaz
     if [[ -n "$vserver_name" ]]; then
         echo "$vserver_name" >> "$VSERVER_FILE"
     fi
